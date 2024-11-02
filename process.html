@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seamless Layout</title>
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.2.1/css/all.css">
+    <link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.11.1/dist/assets/bpmn-js.css" />
+
+<script src="https://unpkg.com/bpmn-js@17.11.1/dist/bpmn-viewer.development.js"></script>
+<!-- required modeler styles -->
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.11.1/dist/assets/diagram-js.css" />
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.11.1/dist/assets/bpmn-js.css" />
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.11.1/dist/assets/bpmn-font/css/bpmn.css" />
+
+<script src="https://unpkg.com/bpmn-js@17.11.1/dist/bpmn-modeler.development.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #2796db;
+            --primary-hover: #1e7ab8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            overflow: hidden;
+            padding: 40px;
+        }
+
+        /* Stepper - No Container */
+        .stepper {
+            position: fixed;
+            left: 40px;
+            top: 40px;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+            width: 10px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            padding: 16px 8px;
+            cursor: pointer;
+            position: relative;
+            margin-left: 12px;
+        }
+
+        .step::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            position: absolute;
+            left: -11px;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .step::after {
+            content: '';
+            position: absolute;
+            left: -2px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ccc;
+            z-index: 1;
+        }
+
+        .step.completed::before {
+            content: '✓';
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .step.active::before {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .step.upcoming::before {
+            content: '•';
+            color: #ccc;
+            font-size: 24px;
+            line-height: 0;
+            padding-bottom: 2px;
+        }
+
+        .step:first-child::after {
+            top: 50%;
+        }
+
+        .step:last-child::after {
+            bottom: 50%;
+        }
+
+        .step.completed::after {
+            background: var(--primary-color);
+        }
+
+        .step.active::after {
+            background: var(--primary-color);
+            bottom: 50%;
+        }
+
+        .step-label {
+            margin-left: 24px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .step.completed .step-label,
+        .step.active .step-label {
+            color: var(--primary-color);
+        }
+
+        .step:hover .step-label {
+            color: var(--primary-hover);
+        }
+
+        .step:hover::before {
+            border-color: var(--primary-hover);
+        }
+
+        /* Content Area */
+        .content-area {
+            position: fixed;
+            left: 200px;
+            right: 40px;
+            top: 40px;
+            bottom: 40px;
+            padding: 20px;
+        }
+
+        .chat-panel {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            width: 340px;
+            height: 480px;
+            background-color: rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+        }
+
+        .chat-panel.minimized {
+            height: 50px;
+        }
+
+        .chat-header {
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(39, 150, 219, 0.8);
+            backdrop-filter: blur(4px);
+            color: white;
+            gap: 10px;
+        }
+
+        .chat-header i {
+            font-size: 20px;
+        }
+
+        .chat-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 8px;
+            max-width: 85%;
+        }
+
+        .message.bot {
+            align-self: flex-start;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .bot .avatar {
+            background: #2796db;
+            color: white;
+        }
+
+        .user .avatar {
+            background: #6c757d;
+            color: white;
+        }
+
+        .message-content {
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .bot .message-content {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-top-left-radius: 4px;
+        }
+
+        .user .message-content {
+            background: rgba(39, 150, 219, 0.8);
+            color: white;
+            border-top-right-radius: 4px;
+        }
+
+        .chat-footer {
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 8px;
+            padding: 0 4px;
+        }
+
+        .action-button {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            padding: 4px;
+            transition: color 0.3s ease;
+        }
+
+        .action-button:hover {
+            color: white;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            outline: none;
+            font-size: 13px;
+        }
+
+        .chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .send-button {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .send-button:hover {
+            background: var(--primary-hover);
+        }
+
+        .timestamp {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        /* Custom scrollbar */
+        .chat-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+                .content-area {
+            padding: 0 !important;
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Ensure full height */
+        }
+        
+        .process-header {
+            padding: 24px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .process-header h1 {
+            font-size: 24px;
+            color: #111827;
+            margin-bottom: 8px;
+        }
+        
+        .process-header p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        #canvas {
+            flex: 1;
+            height: calc(100% - 100px);
+            border: 1px solid #ccc; /* Optional for visibility */
+        }
+        
+        .bjs-powered-by {
+            display: none;
+        }
+        a {
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Stepper -->
+    <div class="stepper">
+         <a href="questionnaire.html">
+            <div class="step completed" data-step="questionnaire">
+                <span class="step-label">Product Questionnaire</span>
+            </div>
+         </a>
+        <a href="stakeholders.html">
+            <div class="step completed" data-step="stakeholders">
+                <span class="step-label">Stakeholders</span>
+            </div>
+         </a>
+
+        <a href="usecase.html">
+            <div class="step completed" data-step="usecases">
+                <span class="step-label">Use Cases</span>
+            </div>
+         </a>
+
+        <a href="process.html">
+            <div class="step active" data-step="process">
+                <span class="step-label">Process Model</span>
+            </div>
+         </a>
+
+        <a href="data.html">
+            <div class="step upcoming" data-step="data">
+                <span class="step-label">Data Model</span>
+            </div>
+         </a>
+
+        <a href="architecture.html">
+            <div class="step upcoming" data-step="architecture">
+                <span class="step-label">Architecture</span>
+            </div>
+         </a>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+        <div class="process-header">
+            <h1>Process Model</h1>
+            <p>BPMN 2.0 visualization of the Clinical Decision Support System workflow</p>
+        </div>
+        <div id="canvas"></div>
+    </div>
+
+    <!-- Chat Panel -->
+    
+    <!-- Enhanced Chat Panel -->
+    <div class="chat-panel">
+        <div class="chat-header">
+            <i class="fas fa-robot"></i>
+            <h3>AI Assistant</h3>
+        </div>
+         <button onclick="toggleChat()" style="background: none; border: none; color: white;">
+                <i class="fas fa-minus"></i>
+            </button>
+        <div class="chat-content">
+            <div class="message bot">
+                <div class="avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <div class="message-content">
+                        How can I assist you with Clinical Decision Support Systems today?
+                    </div>
+                    <div class="timestamp">10:30 AM</div>
+                </div>
+            </div>
+
+            <div class="message user">
+                <div class="avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <div class="message-content">
+                        Can you explain how AI-driven CDSS can improve diagnostic accuracy?
+                    </div>
+                    <div class="timestamp">10:31 AM</div>
+                </div>
+            </div>
+
+            <div class="message bot">
+                <div class="avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <div class="message-content">
+                        AI-driven CDSS can significantly improve diagnostic accuracy through pattern recognition in large datasets, real-time analysis of patient data, and integration of the latest clinical guidelines. For example, deep learning models can detect subtle patterns in medical imaging that might be missed by human observers.
+                    </div>
+                    <div class="timestamp">10:31 AM</div>
+                </div>
+            </div>
+
+            <div class="message user">
+                <div class="avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <div class="message-content">
+                        What about integration with EHR systems? Any challenges there?
+                    </div>
+                    <div class="timestamp">10:32 AM</div>
+                </div>
+            </div>
+
+            <div class="message bot">
+                <div class="avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <div class="message-content">
+                        Integration with EHR systems can be complex due to interoperability issues and data standardization challenges. However, modern CDSS solutions use FHIR standards and APIs to ensure seamless data exchange. This allows for real-time decision support without disrupting clinical workflows.
+                    </div>
+                    <div class="timestamp">10:33 AM</div>
+                </div>
+            </div>
+        </div>
+        <div class="chat-footer">
+            <div class="input-actions">
+                <button class="action-button" title="Voice input">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button class="action-button" title="Attach media">
+                    <i class="fas fa-paperclip"></i>
+                </button>
+                <button class="action-button" title="Upload document">
+                    <i class="fas fa-file-arrow-up"></i>
+                </button>
+            </div>
+            <div class="input-container">
+                <input type="text" class="chat-input" placeholder="Type a message...">
+                <button class="send-button">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function toggleChat() {
+            const chatPanel = document.getElementById("chatPanel");
+            chatPanel.classList.toggle("minimized");
+        }
+    </script>
+
+    <script>
+        // BPMN XML with layout information
+        const bpmnXML = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:startEvent id="E1" name="Patient Data Input Started">
+      <bpmn:outgoing>Flow_E1_A1</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <bpmn:userTask id="A1" name="Enter Patient Details">
+      <bpmn:incoming>Flow_E1_A1</bpmn:incoming>
+      <bpmn:outgoing>Flow_A1_A2</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:serviceTask id="A2" name="Save Patient Record">
+      <bpmn:incoming>Flow_A1_A2</bpmn:incoming>
+      <bpmn:outgoing>Flow_A2_E2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:intermediateCatchEvent id="E2" name="Regular Vital Monitoring">
+      <bpmn:incoming>Flow_A2_E2</bpmn:incoming>
+      <bpmn:outgoing>Flow_E2_A3</bpmn:outgoing>
+      <bpmn:timerEventDefinition />
+    </bpmn:intermediateCatchEvent>
+    
+    <bpmn:serviceTask id="A3" name="Monitor Vital Signs">
+      <bpmn:incoming>Flow_E2_A3</bpmn:incoming>
+      <bpmn:outgoing>Flow_A3_G1</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:exclusiveGateway id="G1" name="Vitals Threshold Check">
+      <bpmn:incoming>Flow_A3_G1</bpmn:incoming>
+      <bpmn:outgoing>Flow_G1_A4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_G1_E2</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:serviceTask id="A4" name="Generate Alert">
+      <bpmn:incoming>Flow_G1_A4</bpmn:incoming>
+      <bpmn:outgoing>Flow_A4_E3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:intermediateThrowEvent id="E3" name="Alert Notification">
+      <bpmn:incoming>Flow_A4_E3</bpmn:incoming>
+      <bpmn:outgoing>Flow_E3_A5</bpmn:outgoing>
+      <bpmn:messageEventDefinition />
+    </bpmn:intermediateThrowEvent>
+    
+    <bpmn:userTask id="A5" name="Respond to Alert">
+      <bpmn:incoming>Flow_E3_A5</bpmn:incoming>
+      <bpmn:outgoing>Flow_A5_G2</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:exclusiveGateway id="G2" name="Is Treatment Required?">
+      <bpmn:incoming>Flow_A5_G2</bpmn:incoming>
+      <bpmn:outgoing>Flow_G2_A6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_G2_E4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:userTask id="A6" name="Initiate Treatment">
+      <bpmn:incoming>Flow_G2_A6</bpmn:incoming>
+      <bpmn:outgoing>Flow_A6_E4</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:endEvent id="E4" name="Process Complete">
+      <bpmn:incoming>Flow_G2_E4</bpmn:incoming>
+      <bpmn:incoming>Flow_A6_E4</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_E1_A1" sourceRef="E1" targetRef="A1" />
+    <bpmn:sequenceFlow id="Flow_A1_A2" sourceRef="A1" targetRef="A2" />
+    <bpmn:sequenceFlow id="Flow_A2_E2" sourceRef="A2" targetRef="E2" />
+    <bpmn:sequenceFlow id="Flow_E2_A3" sourceRef="E2" targetRef="A3" />
+    <bpmn:sequenceFlow id="Flow_A3_G1" sourceRef="A3" targetRef="G1" />
+    <bpmn:sequenceFlow id="Flow_G1_A4" sourceRef="G1" targetRef="A4" name="Vitals exceed threshold" />
+    <bpmn:sequenceFlow id="Flow_G1_E2" sourceRef="G1" targetRef="E2" name="Vitals normal" />
+    <bpmn:sequenceFlow id="Flow_A4_E3" sourceRef="A4" targetRef="E3" />
+    <bpmn:sequenceFlow id="Flow_E3_A5" sourceRef="E3" targetRef="A5" />
+    <bpmn:sequenceFlow id="Flow_A5_G2" sourceRef="A5" targetRef="G2" />
+    <bpmn:sequenceFlow id="Flow_G2_A6" sourceRef="G2" targetRef="A6" name="Yes" />
+    <bpmn:sequenceFlow id="Flow_G2_E4" sourceRef="G2" targetRef="E4" name="No" />
+    <bpmn:sequenceFlow id="Flow_A6_E4" sourceRef="A6" targetRef="E4" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="E1_di" bpmnElement="E1">
+        <dc:Bounds x="152" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="132" y="235" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A1_di" bpmnElement="A1">
+        <dc:Bounds x="240" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A2_di" bpmnElement="A2">
+        <dc:Bounds x="400" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="E2_di" bpmnElement="E2">
+        <dc:Bounds x="552" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="532" y="235" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A3_di" bpmnElement="A3">
+        <dc:Bounds x="640" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G1_di" bpmnElement="G1" isMarkerVisible="true">
+        <dc:Bounds x="795" y="185" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="780" y="161" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A4_di" bpmnElement="A4">
+        <dc:Bounds x="900" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="E3_di" bpmnElement="E3">
+        <dc:Bounds x="1062" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1042" y="235" width="77" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A5_di" bpmnElement="A5">
+        <dc:Bounds x="1150" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G2_di" bpmnElement="G2" isMarkerVisible="true">
+        <dc:Bounds x="1305" y="185" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1290" y="161" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A6_di" bpmnElement="A6">
+        <dc:Bounds x="1410" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="E4_di" bpmnElement="E4">
+        <dc:Bounds x="1572" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1552" y="235" width="77" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initialize BPMN Viewer
+            const viewer = new BpmnJS({
+                container: '#canvas',
+                height: '100%',
+                width: '100%'
+            });
+
+            // Load BPMN diagram
+            viewer.importXML(bpmnXML)
+                .then(() => {
+                    const canvas = viewer.get('canvas');
+                    canvas.zoom('fit-viewport', 'auto');
+                })
+                .catch(err => {
+                    console.error('Error loading BPMN diagram', err);
+                });
+        });
+    </script>
+</body>
+</html>

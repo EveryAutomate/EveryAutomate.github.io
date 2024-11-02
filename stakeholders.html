@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seamless Layout</title>
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.2.1/css/all.css">
+    <style>
+        :root {
+            --primary-color: #2796db;
+            --primary-hover: #1e7ab8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            overflow: hidden;
+            padding: 40px;
+        }
+
+        /* Stepper - No Container */
+        .stepper {
+            position: fixed;
+            left: 40px;
+            top: 40px;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+            width: 260px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            padding: 16px 8px;
+            cursor: pointer;
+            position: relative;
+            margin-left: 12px;
+        }
+
+        .step::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            position: absolute;
+            left: -11px;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .step::after {
+            content: '';
+            position: absolute;
+            left: -2px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ccc;
+            z-index: 1;
+        }
+
+        .step.completed::before {
+            content: '✓';
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .step.active::before {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .step.upcoming::before {
+            content: '•';
+            color: #ccc;
+            font-size: 24px;
+            line-height: 0;
+            padding-bottom: 2px;
+        }
+
+        .step:first-child::after {
+            top: 50%;
+        }
+
+        .step:last-child::after {
+            bottom: 50%;
+        }
+
+        .step.completed::after {
+            background: var(--primary-color);
+        }
+
+        .step.active::after {
+            background: var(--primary-color);
+            bottom: 50%;
+        }
+
+        .step-label {
+            margin-left: 24px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .step.completed .step-label,
+        .step.active .step-label {
+            color: var(--primary-color);
+        }
+
+        .step:hover .step-label {
+            color: var(--primary-hover);
+        }
+
+        .step:hover::before {
+            border-color: var(--primary-hover);
+        }
+
+        /* Content Area */
+        .content-area {
+            position: fixed;
+            left: 320px;
+            right: 40px;
+            top: 40px;
+            bottom: 40px;
+            padding: 20px;
+        }
+
+        .chat-panel {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            width: 340px;
+            height: 480px;
+            background-color: rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+        }
+
+        .chat-panel.minimized {
+            height: 50px;
+        }
+
+        .chat-header {
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(39, 150, 219, 0.8);
+            backdrop-filter: blur(4px);
+            color: white;
+            gap: 10px;
+        }
+
+        .chat-header i {
+            font-size: 20px;
+        }
+
+        .chat-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 8px;
+            max-width: 85%;
+        }
+
+        .message.bot {
+            align-self: flex-start;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .bot .avatar {
+            background: #2796db;
+            color: white;
+        }
+
+        .user .avatar {
+            background: #6c757d;
+            color: white;
+        }
+
+        .message-content {
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .bot .message-content {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-top-left-radius: 4px;
+        }
+
+        .user .message-content {
+            background: rgba(39, 150, 219, 0.8);
+            color: white;
+            border-top-right-radius: 4px;
+        }
+
+        .chat-footer {
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 8px;
+            padding: 0 4px;
+        }
+
+        .action-button {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            padding: 4px;
+            transition: color 0.3s ease;
+        }
+
+        .action-button:hover {
+            color: white;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            outline: none;
+            font-size: 13px;
+        }
+
+        .chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .send-button {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .send-button:hover {
+            background: var(--primary-hover);
+        }
+
+        .timestamp {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        /* Custom scrollbar */
+        .chat-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        a {
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Stepper -->
+    <div class="stepper">
+        <a href="questionnaire.html">
+            <div class="step completed" data-step="questionnaire">
+                <span class="step-label">Product Questionnaire</span>
+            </div>
+         </a>
+        <a href="stakeholders.html">
+            <div class="step active" data-step="stakeholders">
+                <span class="step-label">Stakeholders</span>
+            </div>
+         </a>
+
+        <a href="usecase.html">
+            <div class="step upcoming" data-step="usecases">
+                <span class="step-label">Use Cases</span>
+            </div>
+         </a>
+
+        <a href="process.html">
+            <div class="step upcoming" data-step="process">
+                <span class="step-label">Process Model</span>
+            </div>
+         </a>
+
+        <a href="data.html">
+            <div class="step upcoming" data-step="data">
+                <span class="step-label">Data Model</span>
+            </div>
+         </a>
+
+        <a href="architecture.html">
+            <div class="step upcoming" data-step="architecture">
+                <span class="step-label">Architecture</span>
+            </div>
+         </a>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+        <h2>Content Area</h2>
+        <p>Main content will be displayed here based on the selected step.</p>
+    </div>
+
+    <!-- Chat Panel -->
+    
+    <!-- Enhanced Chat Panel -->
+    <div class="chat-panel">
+        <div class="chat-header">
+            <i class="fas fa-robot"></i>
+            <h3>AI Assistant</h3>
+        </div>
+         <button onclick="toggleChat()" style="background: none; border: none; color: white;">
+                <i class="fas fa-minus"></i>
+            </button>
+        <div class="chat-content">
+            <div class="message bot">
+                <div class="avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <div class="message-content">
+                        How can I assist you with Clinical Decision Support Systems today?
+                    </div>
+                    <div class="timestamp">10:30 AM</div>
+                </div>
+            </div>
+
+            <div class="message user">
+                <div class="avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <div class="message-content">
+                        Can you explain how AI-driven CDSS can improve diagnostic accuracy?
+                    </div>
+                    <div class="timestamp">10:31 AM</div>
+                </div>
+            </div>
+
+            <div class="message bot">
+                <div class="avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <div class="message-content">
+                        AI-driven CDSS can significantly improve diagnostic accuracy through pattern recognition in large datasets, real-time analysis of patient data, and integration of the latest clinical guidelines. For example, deep learning models can detect subtle patterns in medical imaging that might be missed by human observers.
+                    </div>
+                    <div class="timestamp">10:31 AM</div>
+                </div>
+            </div>
+
+            <div class="message user">
+                <div class="avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <div class="message-content">
+                        What about integration with EHR systems? Any challenges there?
+                    </div>
+                    <div class="timestamp">10:32 AM</div>
+                </div>
+            </div>
+
+            <div class="message bot">
+                <div class="avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <div class="message-content">
+                        Integration with EHR systems can be complex due to interoperability issues and data standardization challenges. However, modern CDSS solutions use FHIR standards and APIs to ensure seamless data exchange. This allows for real-time decision support without disrupting clinical workflows.
+                    </div>
+                    <div class="timestamp">10:33 AM</div>
+                </div>
+            </div>
+        </div>
+        <div class="chat-footer">
+            <div class="input-actions">
+                <button class="action-button" title="Voice input">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button class="action-button" title="Attach media">
+                    <i class="fas fa-paperclip"></i>
+                </button>
+                <button class="action-button" title="Upload document">
+                    <i class="fas fa-file-arrow-up"></i>
+                </button>
+            </div>
+            <div class="input-container">
+                <input type="text" class="chat-input" placeholder="Type a message...">
+                <button class="send-button">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function toggleChat() {
+            const chatPanel = document.getElementById("chatPanel");
+            chatPanel.classList.toggle("minimized");
+        }
+    </script>
+</body>
+</html>
